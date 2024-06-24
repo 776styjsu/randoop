@@ -46,6 +46,16 @@ public final class PrimitiveTypes {
     primitiveToBoxed.put(int.class, Integer.class);
     primitiveToBoxed.put(long.class, Long.class);
     primitiveToBoxed.put(short.class, Short.class);
+
+    // Otherwise, perform identity conversion
+    primitiveToBoxed.put(Boolean.class, Boolean.class);
+    primitiveToBoxed.put(Byte.class, Byte.class);
+    primitiveToBoxed.put(Character.class, Character.class);
+    primitiveToBoxed.put(Double.class, Double.class);
+    primitiveToBoxed.put(Float.class, Float.class);
+    primitiveToBoxed.put(Integer.class, Integer.class);
+    primitiveToBoxed.put(Long.class, Long.class);
+    primitiveToBoxed.put(Short.class, Short.class);
   }
 
   /** Map from primitive type name (and "void") to {@code Class<?>} objects. */

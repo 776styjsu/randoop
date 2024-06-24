@@ -31,6 +31,8 @@ public class NonParameterizedType extends ClassOrInterfaceType {
     //   return cache.computeIfAbsent(runtimeType, NonParameterizedType::new);
     // because NonParameterizedType::new side-effects `cache`.  It does so by calling
     // ClassOrInterfaceType.forClass which may call back into NonParameterizedType.
+    // System.out.println("runtimeType: " + runtimeType);
+
 
     NonParameterizedType cached = cache.get(runtimeType);
     if (cached == null) {
@@ -48,6 +50,9 @@ public class NonParameterizedType extends ClassOrInterfaceType {
   public NonParameterizedType(Class<?> runtimeType) {
     assert !runtimeType.isPrimitive() : "must be reference type, got " + runtimeType.getName();
     this.runtimeType = runtimeType;
+
+    // System.out.println("runtimeType: " + runtimeType);
+
     Class<?> enclosingClass = runtimeType.getEnclosingClass();
     if (enclosingClass != null) {
       this.enclosingType = ClassOrInterfaceType.forClass(enclosingClass);
@@ -161,6 +166,17 @@ public class NonParameterizedType extends ClassOrInterfaceType {
     if (super.isAssignableFrom(sourceType)) {
       return true;
     }
+
+//    System.out.println("--------------------------");
+//    System.out.println("sourceType: " + sourceType);
+//
+//    if (sourceType.isPrimitive()) {
+//      System.out.println("Casted sourceType: " + (PrimitiveType) sourceType);
+//      System.out.println("sourceType to boxed primitive: " + ((PrimitiveType) sourceType).toBoxedPrimitive());
+//    } else {
+//      System.out.println("not primitive");
+//    }
+//    System.out.println("--------------------------");
 
     // otherwise, check for boxing conversion
     return sourceType.isPrimitive()
