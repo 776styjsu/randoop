@@ -256,8 +256,8 @@ public class DemandDrivenInputCreation {
       // processed.
       // if (!processed.contains(currentType) && !currentType.isNonreceiverType()) {
       if (!processed.contains(currentType)
-          && !sequenceCollection
-              .getSequencesForType(currentType, currentType.isPrimitive(), false)
+          && sequenceCollection
+              .getSequencesForType(currentType, true, true)
               .isEmpty()) {
         Class<?> currentClass = currentType.getRuntimeClass();
         List<Executable> executableList = new ArrayList<>();
