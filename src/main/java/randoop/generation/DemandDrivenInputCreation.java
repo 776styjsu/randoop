@@ -152,7 +152,7 @@ public class DemandDrivenInputCreation {
     ONLY_RECEIVERS = onlyReceivers;
 
     // All constructors/methods found that return the demanded type.
-    Set<TypedOperation> producerMethods = getProducerMethods(t);
+    Set<TypedOperation> producerMethods = getProducerMethods(t, sequenceCollection);
 
     // For each producer method, create a sequence if possible.
     // Note: The order of methods in `producerMethods` does not guarantee that all necessary
@@ -196,7 +196,8 @@ public class DemandDrivenInputCreation {
    * @return a set of {@code TypedOperations} that construct objects of the specified type {@code
    *     t}, or an empty set if no such methods are found
    */
-  public static Set<TypedOperation> getProducerMethods(Type t) {
+  public static Set<TypedOperation> getProducerMethods(
+      Type t, SequenceCollection sequenceCollection) {
     Set<TypedOperation> producerMethods = new LinkedHashSet<>();
 
     // Search for methods that return the specified type in the specified classes.
@@ -204,14 +205,14 @@ public class DemandDrivenInputCreation {
       try {
         Class<?> cls = Class.forName(className);
         Type specifiedType = new NonParameterizedType(cls);
-        producerMethods.addAll(producerMethodSearch(t, specifiedType));
+        producerMethods.addAll(producerMethodSearch(t, specifiedType, sequenceCollection));
       } catch (ClassNotFoundException e) {
         throw new RandoopBug("Class not found: " + className);
       }
     }
 
     // Search starting from the specified type.
-    producerMethods.addAll(producerMethodSearch(t, t));
+    producerMethods.addAll(producerMethodSearch(t, t, sequenceCollection));
 
     return producerMethods;
   }
@@ -233,7 +234,8 @@ public class DemandDrivenInputCreation {
    * @param startingType the type from which to start the search
    * @return a set of {@code TypedOperations} that construct objects of the specified type {@code t}
    */
-  private static Set<TypedOperation> producerMethodSearch(Type t, Type startingType) {
+  private static Set<TypedOperation> producerMethodSearch(
+      Type t, Type startingType, SequenceCollection sequenceCollection) {
     Set<Type> processed = new HashSet<>();
     boolean isSearchingForTargetType = true;
     List<TypedOperation> producerMethodsList = new ArrayList<>();
@@ -249,9 +251,14 @@ public class DemandDrivenInputCreation {
       // Log the unspecified classes that are used in demand-driven input creation.
       logUnspecifiedClasses(currentType);
 
-      // Only consider the type if it is not a primitive type and if it hasn't already been
+      // Only consider the type if it is not contained in the sequenceCollection and if it hasn't
+      // already been
       // processed.
-      if (!processed.contains(currentType) && !currentType.isNonreceiverType()) {
+      // if (!processed.contains(currentType) && !currentType.isNonreceiverType()) {
+      if (!processed.contains(currentType)
+          && !sequenceCollection
+              .getSequencesForType(currentType, currentType.isPrimitive(), false)
+              .isEmpty()) {
         Class<?> currentClass = currentType.getRuntimeClass();
         List<Executable> executableList = new ArrayList<>();
 
