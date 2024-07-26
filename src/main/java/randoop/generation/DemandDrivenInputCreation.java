@@ -251,9 +251,7 @@ public class DemandDrivenInputCreation {
       logUnspecifiedClasses(currentType);
 
       // Only consider the type if it is not contained in the sequenceCollection and if it hasn't
-      // already been
-      // processed.
-      // if (!processed.contains(currentType) && !currentType.isNonreceiverType()) {
+      // already been processed.
       if (!processed.contains(currentType)
           && sequenceCollection
               .getSequencesForType(currentType, true, true)
