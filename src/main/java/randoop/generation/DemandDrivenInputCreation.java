@@ -56,8 +56,7 @@ import randoop.util.SimpleList;
  *
  * <ol>
  *   <li>Let {@code A} be the missing type.
- *   <li>Identify Identify constructors and methods that create that create {@code A} (producer
- *       methods).
+ *   <li>Identify constructors and methods that create that create {@code A} (producer methods).
  *   <li>For each producer method (e.g. {@code A.foo(B, C)}):
  *       <ul>
  *         <li>Mark {@code B} and {@code C} as missing types.
@@ -115,11 +114,11 @@ public class DemandDrivenInputCreation {
    * Performs a demand-driven approach for constructing input objects of a specified type, when the
    * sequence collection contains no objects of that type.
    *
-   * <p>This method internally identifies a set of methods/constructors that return objects that is
-   * compatible with the specified type. For each of these methods: it generates a method sequence
-   * for the method by searching for necessary inputs from the provided sequence collection,
-   * executing it, and, if successful, storing the sequence in the sequence collection for future
-   * use.
+   * <p>This method internally identifies a set of methods/constructors that return object that is
+   * compatible with (i.e., assignable to the variable of) the specified type. For each of these
+   * methods: it generates a method sequence for the method by searching for necessary inputs from
+   * the provided sequence collection, executing it, and, if successful, storing the sequence in the
+   * sequence collection for future use.
    *
    * <p>Finally, it returns a list of sequences that produce objects of the specified type, if any
    * are found.
