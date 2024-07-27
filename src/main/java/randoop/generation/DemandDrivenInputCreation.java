@@ -62,7 +62,7 @@ import randoop.util.SimpleList;
  *         <li>Mark {@code B} and {@code C} as missing types.
  *         <li>Recursively apply steps 1-3 for each missing type if:
  *             <ul>
- *               <li>The type is not primitive.
+ *               <li>The type is not contained in the sequence collection.
  *               <li>The type has not been processed.
  *             </ul>
  *       </ul>
@@ -223,8 +223,8 @@ public class DemandDrivenInputCreation {
    * return a type compatible with the specified type {@code t}. It then searches for the inputs
    * needed to execute these constructors and methods. For each input type, the method initiates a
    * new search within the input class for constructors/methods that can produce that input type.
-   * The search terminates if the current type is a primitive type or if it has already been
-   * processed.
+   * The search terminates if the current type is contained in the sequenceCollection or if it has
+   * already been processed.
    *
    * <p>Despite being called "producerMethodSearch", the resulting set of {@code TypedOperations}
    * may contain both constructors and methods.
