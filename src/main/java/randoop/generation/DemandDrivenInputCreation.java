@@ -160,8 +160,8 @@ public class DemandDrivenInputCreation {
 
       // For each producer method, create a sequence if possible.
       // Note: The order of methods in `producerMethods` does not guarantee that all necessary
-      // methods will be called in the correct order to fully construct the specified type in one call
-      // to demand-driven `createInputForType`.
+      // methods will be called in the correct order to fully construct the specified type in one
+      // call to demand-driven `createInputForType`.
       // Intermediate objects are added to the sequence collection and may be used in future tests.
       for (TypedOperation producerMethod : producerMethods) {
         Sequence newSequence = createSequenceForOperation(sequenceCollection, producerMethod);
@@ -177,7 +177,7 @@ public class DemandDrivenInputCreation {
       // Multiple iterations of `createInputForType` may be needed to successfully construct the
       // object.
       SimpleList<Sequence> result =
-              sequenceCollection.getSequencesForType(t, EXACT_TYPE_MATCH, ONLY_RECEIVERS);
+          sequenceCollection.getSequencesForType(t, EXACT_TYPE_MATCH, ONLY_RECEIVERS);
 
       if (GenInputsAbstract.demand_driven_logging != null) {
         writeUnspecifiedClassesToLog();
@@ -369,9 +369,12 @@ public class DemandDrivenInputCreation {
       // `ComponentManager.getSequencesForType`. However, allow non-receiver types to be considered
       // at all times.
       SimpleList<Sequence> sequencesOfType = new SimpleArrayList<>();
-      sequencesOfType = secondarySequenceCollection.getSequencesForType(inputType, inputType.isPrimitive(), false);
+      sequencesOfType =
+          secondarySequenceCollection.getSequencesForType(
+              inputType, inputType.isPrimitive(), false);
       if (sequencesOfType.isEmpty()) {
-        sequencesOfType = sequenceCollection.getSequencesForType(inputType, inputType.isPrimitive(), false);
+        sequencesOfType =
+            sequenceCollection.getSequencesForType(inputType, inputType.isPrimitive(), false);
       }
 
       if (sequencesOfType.isEmpty()) {

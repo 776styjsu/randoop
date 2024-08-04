@@ -97,8 +97,8 @@ public class SequenceCollection {
 
   /** Create a new, empty collection, but with the option to use demand-driven input creation. */
   public SequenceCollection(boolean useDemandDriven) {
-      this(new ArrayList<Sequence>(0));
-      this.useDemandDriven = useDemandDriven;
+    this(new ArrayList<Sequence>(0));
+    this.useDemandDriven = useDemandDriven;
   }
 
   /**
