@@ -43,6 +43,7 @@ import randoop.types.Type;
 import randoop.types.TypeTuple;
 import randoop.util.EquivalenceChecker;
 import randoop.util.Randomness;
+import randoop.util.SimpleArrayList;
 import randoop.util.SimpleList;
 
 /**
@@ -110,6 +111,9 @@ public class DemandDrivenInputCreation {
   // the search space for the missing types. Consider implementing this feature and test whether
   // it improves the performance.
 
+  /** A secondary sequence collection to store sequences that are generated during the search. */
+  private static SequenceCollection secondarySequenceCollection = new SequenceCollection(false);
+
   /**
    * Performs a demand-driven approach for constructing input objects of a specified type, when the
    * sequence collection contains no objects of that type.
@@ -147,38 +151,47 @@ public class DemandDrivenInputCreation {
       boolean exactTypeMatch,
       boolean onlyReceivers) {
 
-    EXACT_TYPE_MATCH = exactTypeMatch;
-    ONLY_RECEIVERS = onlyReceivers;
+    try {
+      EXACT_TYPE_MATCH = exactTypeMatch;
+      ONLY_RECEIVERS = onlyReceivers;
 
-    // All constructors/methods found that return the demanded type.
-    Set<TypedOperation> producerMethods = getProducerMethods(t);
+      // All constructors/methods found that return the demanded type.
+      Set<TypedOperation> producerMethods = getProducerMethods(t);
 
-    // For each producer method, create a sequence if possible.
-    // Note: The order of methods in `producerMethods` does not guarantee that all necessary
-    // methods will be called in the correct order to fully construct the specified type in one call
-    // to demand-driven `createInputForType`.
-    // Intermediate objects are added to the sequence collection and may be used in future tests.
-    for (TypedOperation producerMethod : producerMethods) {
-      Sequence newSequence = createSequenceForOperation(sequenceCollection, producerMethod);
-      if (newSequence != null) {
-        // If the sequence is successfully executed, add it to the sequenceCollection.
-        executeAndAddToPool(sequenceCollection, Collections.singleton(newSequence));
+      // For each producer method, create a sequence if possible.
+      // Note: The order of methods in `producerMethods` does not guarantee that all necessary
+      // methods will be called in the correct order to fully construct the specified type in one call
+      // to demand-driven `createInputForType`.
+      // Intermediate objects are added to the sequence collection and may be used in future tests.
+      for (TypedOperation producerMethod : producerMethods) {
+        Sequence newSequence = createSequenceForOperation(sequenceCollection, producerMethod);
+        if (newSequence != null) {
+          // If the sequence is successfully executed, add it to the sequenceCollection.
+          executeAndAddToPool(Collections.singleton(newSequence));
+        }
       }
+
+      // Note: At the beginning of the `createInputForType` call, getSequencesForType here would
+      // return an empty list. However, it is not guaranteed that the method will return a non-empty
+      // list at this point.
+      // Multiple iterations of `createInputForType` may be needed to successfully construct the
+      // object.
+      SimpleList<Sequence> result =
+              sequenceCollection.getSequencesForType(t, EXACT_TYPE_MATCH, ONLY_RECEIVERS);
+
+      if (GenInputsAbstract.demand_driven_logging != null) {
+        writeUnspecifiedClassesToLog();
+      }
+
+      sequenceCollection.addAll(secondarySequenceCollection.getAllSequences());
+      secondarySequenceCollection.clear();
+
+      return result;
+
+    } catch (Exception e) {
+      secondarySequenceCollection.clear();
+      throw new RandoopBug("Error in demand-driven input creation: " + e);
     }
-
-    // Note: At the beginning of the `createInputForType` call, getSequencesForType here would
-    // return an empty list. However, it is not guaranteed that the method will return a non-empty
-    // list at this point.
-    // Multiple iterations of `createInputForType` may be needed to successfully construct the
-    // object.
-    SimpleList<Sequence> result =
-        sequenceCollection.getSequencesForType(t, EXACT_TYPE_MATCH, ONLY_RECEIVERS);
-
-    if (GenInputsAbstract.demand_driven_logging != null) {
-      writeUnspecifiedClassesToLog();
-    }
-
-    return result;
   }
 
   /**
@@ -355,11 +368,14 @@ public class DemandDrivenInputCreation {
       // Return exact type match if the input type is a primitive type, same as how it is done in
       // `ComponentManager.getSequencesForType`. However, allow non-receiver types to be considered
       // at all times.
-      SimpleList<Sequence> sequencesOfType =
-          sequenceCollection.getSequencesForType(inputTypes.get(i), inputType.isPrimitive(), false);
+      SimpleList<Sequence> sequencesOfType = new SimpleArrayList<>();
+      sequencesOfType = secondarySequenceCollection.getSequencesForType(inputType, inputType.isPrimitive(), false);
+      if (sequencesOfType.isEmpty()) {
+        sequencesOfType = sequenceCollection.getSequencesForType(inputType, inputType.isPrimitive(), false);
+      }
 
       if (sequencesOfType.isEmpty()) {
-        return null;
+        return null; // No sequences found for the input type, cannot proceed
       }
 
       // Randomly select a sequence from the sequencesOfType.
@@ -423,11 +439,9 @@ public class DemandDrivenInputCreation {
    * collection allowing them to be used in future tests. A successful execution is a normal
    * execution and yields a non-null value.
    *
-   * @param sequenceCollection the {@code SequenceCollection} to add the sequences to
    * @param sequenceSet a set of sequences to be executed
    */
-  private static void executeAndAddToPool(
-      SequenceCollection sequenceCollection, Set<Sequence> sequenceSet) {
+  private static void executeAndAddToPool(Set<Sequence> sequenceSet) {
     for (Sequence genSeq : sequenceSet) {
       ExecutableSequence eseq = new ExecutableSequence(genSeq);
       eseq.execute(new DummyVisitor(), new DummyCheckGenerator());
@@ -439,7 +453,7 @@ public class DemandDrivenInputCreation {
       }
 
       if (generatedObjectValue != null) {
-        sequenceCollection.add(genSeq);
+        secondarySequenceCollection.add(genSeq);
       }
     }
   }

@@ -95,6 +95,12 @@ public class SequenceCollection {
     this(new ArrayList<Sequence>(0));
   }
 
+  /** Create a new, empty collection, but with the option to use demand-driven input creation. */
+  public SequenceCollection(boolean useDemandDriven) {
+      this(new ArrayList<Sequence>(0));
+      this.useDemandDriven = useDemandDriven;
+  }
+
   /**
    * Create a new collection and adds the given initial sequences.
    *
