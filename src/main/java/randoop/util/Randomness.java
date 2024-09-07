@@ -60,7 +60,7 @@ public final class Randomness {
   }
 
   /**
-   * Uniformly random int from [0, i)
+   * Uniformly random int from [0, i) = from [0, i-1].
    *
    * @param i upper bound on range for generated values
    * @return a value selected from range [0, i)

@@ -61,6 +61,7 @@ public class SequenceCollection {
    */
   private boolean useDemandDriven = true;
 
+  /** Checks the representation invariant. */
   private void checkRep() {
     if (!GenInputsAbstract.debug_checks) {
       return;
@@ -255,7 +256,8 @@ public class SequenceCollection {
         Log.logPrintf("Detective threw an exception.");
         throw new RandoopBug(
             String.format(
-                "Demand-driven input creation threw an exception in getSequencesForType(%s, %s, %s)",
+                "Demand-driven input creation threw an exception in getSequencesForType(%s, %s,"
+                    + " %s)",
                 type, exactMatch, onlyReceivers),
             e);
       }
