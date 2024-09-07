@@ -159,7 +159,7 @@ public final class Sequence {
    * @return the sequence formed by appending the given operation to this sequence
    */
   public final Sequence extend(TypedOperation operation, List<Variable> inputVariables) {
-//    System.out.println("Sequence.extend: " + operation + " " + inputVariables);
+    //    System.out.println("Sequence.extend: " + operation + " " + inputVariables);
     checkInputs(operation, inputVariables);
     int size = size();
     List<RelativeNegativeIndex> indexList =
@@ -805,7 +805,7 @@ public final class Sequence {
         throw new IllegalArgumentException(msg);
       }
       Type newRefConstraint = statements.get(inputVariables.get(i).index).getOutputType();
-//      System.out.println("newRefConstraint: " + newRefConstraint);
+      //      System.out.println("newRefConstraint: " + newRefConstraint);
       if (newRefConstraint == null) {
         String msg =
             "newRefConstraint == null for"
@@ -821,7 +821,7 @@ public final class Sequence {
         throw new IllegalArgumentException(msg);
       }
       Type inputType = operation.getInputTypes().get(i);
-//      System.out.println("inputType: " + inputType);
+      //      System.out.println("inputType: " + inputType);
       if (!inputType.isAssignableFrom(newRefConstraint)) {
         String msg =
             String.format(

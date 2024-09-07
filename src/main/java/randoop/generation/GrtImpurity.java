@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import randoop.main.GenInputsAbstract;
 import randoop.main.RandoopBug;
 import randoop.operation.CallableOperation;
@@ -149,11 +148,11 @@ public class GrtImpurity {
         break;
       }
       Executable method = m.method;
-      output = extendWithOperation(output, method, m.outputType, fuzzStatementOffset,
-              m.explicitCast);
+      output =
+          extendWithOperation(output, method, m.outputType, fuzzStatementOffset, m.explicitCast);
     }
 
-//    System.out.println("output: " + output);
+    //    System.out.println("output: " + output);
 
     output =
         extendWithOperation(
@@ -214,9 +213,9 @@ public class GrtImpurity {
     fuzzStatementOffset.increment(inputTypeList.size());
     List<Sequence> sequenceList = Collections.singletonList(sequence);
 
-//    System.out.println("typedOperation: " + typedOperation);
-//    System.out.println("sequenceList: " + sequenceList);
-//    System.out.println("inputIndex: " + inputIndex);
+    //    System.out.println("typedOperation: " + typedOperation);
+    //    System.out.println("sequenceList: " + sequenceList);
+    //    System.out.println("inputIndex: " + inputIndex);
     return Sequence.createSequence(typedOperation, sequenceList, inputIndex);
   }
 
@@ -340,24 +339,25 @@ public class GrtImpurity {
    * @throws NoSuchMethodException if no suitable method is found for the given class
    */
   private static List<MethodAndOutputType> getNumberSumMethods(Class<?> cls)
-          throws NoSuchMethodException {
+      throws NoSuchMethodException {
     List<MethodAndOutputType> methodList = new ArrayList<>();
 
     if (cls == int.class || cls == Integer.class) {
-      methodList.add(new MethodAndOutputType(Integer.class.getMethod("sum", int.class,
-              int.class)));
+      methodList.add(new MethodAndOutputType(Integer.class.getMethod("sum", int.class, int.class)));
     } else if (cls == double.class || cls == Double.class) {
-      methodList.add(new MethodAndOutputType(Double.class.getMethod("sum", double.class,
-              double.class)));
+      methodList.add(
+          new MethodAndOutputType(Double.class.getMethod("sum", double.class, double.class)));
     } else if (cls == float.class || cls == Float.class) {
-      methodList.add(new MethodAndOutputType(Float.class.getMethod("sum", float.class,
-              float.class)));
+      methodList.add(
+          new MethodAndOutputType(Float.class.getMethod("sum", float.class, float.class)));
     } else if (cls == long.class || cls == Long.class) {
-      methodList.add(new MethodAndOutputType(Long.class.getMethod("sum", long.class,
-              long.class)));
+      methodList.add(new MethodAndOutputType(Long.class.getMethod("sum", long.class, long.class)));
     } else if (cls == short.class || cls == Short.class) {
-      methodList.add(new MethodAndOutputType(Integer.class.getMethod("sum", int.class, int.class),
-              PrimitiveType.forClass(Integer.class), true));
+      methodList.add(
+          new MethodAndOutputType(
+              Integer.class.getMethod("sum", int.class, int.class),
+              PrimitiveType.forClass(Integer.class),
+              true));
       // methodList.add(new MethodAndOutputType(Integer.class.getMethod("valueOf", int.class)));
       methodList.add(new MethodAndOutputType(Integer.class.getMethod("shortValue")));
     } else {
@@ -536,49 +536,53 @@ public class GrtImpurity {
    */
   private static List<MethodAndOutputType> getStringFuzzingMethod(StringFuzzingOperation operation)
       throws NoSuchMethodException {
-//    List<Method> methodList = new ArrayList<>();
-//
-//    switch (operation) {
-//      case INSERT:
-//        methodList.add(StringBuilder.class.getMethod("insert", int.class, char.class));
-//        methodList.add(StringBuilder.class.getMethod("toString"));
-//        break;
-//      case REMOVE:
-//        methodList.add(StringBuilder.class.getMethod("deleteCharAt", int.class));
-//        methodList.add(StringBuilder.class.getMethod("toString"));
-//        break;
-//      case REPLACE:
-//        methodList.add(
-//            StringBuilder.class.getMethod("replace", int.class, int.class, String.class));
-//        methodList.add(StringBuilder.class.getMethod("toString"));
-//        break;
-//      case SUBSTRING:
-//        methodList.add(StringBuilder.class.getMethod("substring", int.class, int.class));
-//        break;
-//      default:
-//        throw new NoSuchMethodException("Object fuzzing is not supported yet");
-//    }
+    //    List<Method> methodList = new ArrayList<>();
+    //
+    //    switch (operation) {
+    //      case INSERT:
+    //        methodList.add(StringBuilder.class.getMethod("insert", int.class, char.class));
+    //        methodList.add(StringBuilder.class.getMethod("toString"));
+    //        break;
+    //      case REMOVE:
+    //        methodList.add(StringBuilder.class.getMethod("deleteCharAt", int.class));
+    //        methodList.add(StringBuilder.class.getMethod("toString"));
+    //        break;
+    //      case REPLACE:
+    //        methodList.add(
+    //            StringBuilder.class.getMethod("replace", int.class, int.class, String.class));
+    //        methodList.add(StringBuilder.class.getMethod("toString"));
+    //        break;
+    //      case SUBSTRING:
+    //        methodList.add(StringBuilder.class.getMethod("substring", int.class, int.class));
+    //        break;
+    //      default:
+    //        throw new NoSuchMethodException("Object fuzzing is not supported yet");
+    //    }
 
     List<MethodAndOutputType> methodList = new ArrayList<>();
 
     switch (operation) {
       case INSERT:
-        methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("insert", int.class,
-                char.class)));
+        methodList.add(
+            new MethodAndOutputType(
+                StringBuilder.class.getMethod("insert", int.class, char.class)));
         methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("toString")));
         break;
       case REMOVE:
-        methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("deleteCharAt", int.class)));
+        methodList.add(
+            new MethodAndOutputType(StringBuilder.class.getMethod("deleteCharAt", int.class)));
         methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("toString")));
         break;
       case REPLACE:
-        methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("replace", int.class,
-                int.class, String.class)));
+        methodList.add(
+            new MethodAndOutputType(
+                StringBuilder.class.getMethod("replace", int.class, int.class, String.class)));
         methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("toString")));
         break;
       case SUBSTRING:
-        methodList.add(new MethodAndOutputType(StringBuilder.class.getMethod("substring", int.class,
-                int.class)));
+        methodList.add(
+            new MethodAndOutputType(
+                StringBuilder.class.getMethod("substring", int.class, int.class)));
         break;
       default:
         throw new NoSuchMethodException("Object fuzzing is not supported yet");
@@ -614,29 +618,23 @@ public class GrtImpurity {
 
   /**
    * A helper class to store the method, the output type of the method, and whether to perform an
-   * explicit cast for the right-hand side of the fuzzing statement. This is to make the
-   * generated test more readable (by replacing Integer.valueOf() with an explicit cast for short
-   * fuzzing).
+   * explicit cast for the right-hand side of the fuzzing statement. This is to make the generated
+   * test more readable (by replacing Integer.valueOf() with an explicit cast for short fuzzing).
    */
-    private static class MethodAndOutputType {
-    /**
-     * The method to be invoked as part of the object fuzzing process.
-     */
+  private static class MethodAndOutputType {
+    /** The method to be invoked as part of the object fuzzing process. */
     private final Executable method;
 
-    /**
-     * The output type of the method.
-     */
+    /** The output type of the method. */
     private final Type outputType;
 
-    /**
-     * Whether to perform an explicit cast for the right-hand side of the fuzzing statement.
-     */
+    /** Whether to perform an explicit cast for the right-hand side of the fuzzing statement. */
     private final boolean explicitCast;
 
     /**
-     * Construct a new MethodAndOutputType with the given method. The output type of the method
-     * will be determined automatically.
+     * Construct a new MethodAndOutputType with the given method. The output type of the method will
+     * be determined automatically.
+     *
      * @param method the method to be invoked as part of the object fuzzing process
      */
     private MethodAndOutputType(Method method) {
@@ -649,10 +647,10 @@ public class GrtImpurity {
      * Construct a new MethodAndOutputType with the given method, output type, and explicit cast
      * flag.
      *
-     * @param method       the method to be invoked as part of the object fuzzing process
-     * @param outputType   the output type of the method
+     * @param method the method to be invoked as part of the object fuzzing process
+     * @param outputType the output type of the method
      * @param explicitCast whether to perform an explicit cast for the right-hand side of the
-     *                     fuzzing statement
+     *     fuzzing statement
      */
     private MethodAndOutputType(Executable method, Type outputType, boolean explicitCast) {
       this.method = method;
