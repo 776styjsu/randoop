@@ -257,7 +257,7 @@ public class DemandDrivenInputCreation {
         List<Executable> executableList = new ArrayList<>();
 
         // Adding constructors if the current type is what we are looking for.
-        if (t.isAssignableFrom(currentType)) {
+        if (t.isAssignableFrom(currentType) && !Modifier.isAbstract(currentClass.getModifiers())) {
           for (Constructor<?> constructor : currentClass.getConstructors()) {
             executableList.add(constructor);
           }
