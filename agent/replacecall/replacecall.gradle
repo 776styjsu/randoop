@@ -9,6 +9,7 @@ configurations {
   implementation.extendsFrom(plumelib)
 }
 dependencies {
+  compileOnly files('lib/jcommander-1.35.jar')
   testImplementation 'junit:junit:4.+'
   testImplementation 'org.hamcrest:hamcrest-all:1.3'
 }
