@@ -916,22 +916,30 @@ public abstract class GenInputsAbstract extends CommandHandler {
   @Option("If true, Randoop is deterministic")
   public static boolean deterministic = false;
 
-  // ///////////////////////////////////////////////////////////////////
+  /** Run noisily: display information such as progress updates. */
+  // /////////////////////////////////////////////////////////////////
   @OptionGroup("Logging, notifications, and troubleshooting Randoop")
   @Option("Run noisily: display information such as progress updates.")
   public static boolean progressdisplay = true;
 
-  // Default value for progressintervalmillis; helps to see if user has set it.
+  /** Default value for progressintervalmillis; helps to see if user has set it. */
   public static long PROGRESSINTERVALMILLIS_DEFAULT = 60000;
 
-  @Option("Display progress message every <int> milliseconds. -1 means no display.")
+  /** Display a progress message every &lt;int&gt; milliseconds; -1 means no display. */
+  @Option("Display progress message every <int> milliseconds; -1 means no display.")
   public static long progressintervalmillis = PROGRESSINTERVALMILLIS_DEFAULT;
 
+  /** Display a progress message every &lt;int&gt; attempts to create a test; -1 means none. */
   @Option("Display progress message every <int> attempts to create a test; -1 means none")
   public static long progressintervalsteps = 1000;
 
+  /** Perform expensive internal checks (for Randoop debugging). */
   @Option("Perform expensive internal checks (for Randoop debugging)")
   public static boolean debug_checks = false;
+
+  /** Turns on all the logs. */
+  @Option("Turn on all the logs")
+  public static boolean all_logs = false;
 
   /**
    * A file to which to log lots of information. If not specified, no logging is done. Enabling the
@@ -1047,6 +1055,11 @@ public abstract class GenInputsAbstract extends CommandHandler {
           "Invalid parameter combination: --call-timeout without --usethreads");
     }
 
+    if (ReflectionExecutor.timed_out_tests != null && !ReflectionExecutor.usethreads) {
+      throw new RandoopUsageError(
+          "Invalid parameter combination: --timed-out-tests without --usethreads");
+    }
+
     if (time_limit == 0
         && attempted_limit >= LIMIT_DEFAULT
         && generated_limit >= LIMIT_DEFAULT
@@ -1149,8 +1162,8 @@ public abstract class GenInputsAbstract extends CommandHandler {
   }
 
   /**
-   * Read names of classes from a jar file. Ignores interfaces, abstract classes, non-accessible
-   * classes, and those that cannot be loaded.
+   * Read names of classes from a jar file. Ignores interfaces, non-accessible classes, and those
+   * that cannot be loaded.
    *
    * @param jarFile the jar file from which to read classes
    * @param accessibility the accessibility predicate
@@ -1188,6 +1201,7 @@ public abstract class GenInputsAbstract extends CommandHandler {
                 className, jarFile, e);
             continue;
           } catch (ExceptionInInitializerError e) {
+            // There was a problem with initializing the class (= setting static fields).
             System.out.printf(
                 "Ignoring %s which was read from %s but could not be initialized: %s%n",
                 className, jarFile, e);
