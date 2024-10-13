@@ -9,18 +9,15 @@ import randoop.SystemExitCalledError;
 @SuppressWarnings("JavaLangClash")
 public class System {
 
-//  /* Do not replace {@code System#exit(int)}, for running Major mutation tests with replacement */  
-//  
-//  /**
-//   * Default mock for {@code System.exit(status)}. Throws an exception to allow Randoop to generate
-//   * tests that acknowledge that exit occurs.
-//   *
-//   * @param status the exit status
-//   * @throws SystemExitCalledError with the status
-//   */
-//  @SuppressWarnings("DoNotCallSuggester")
-//  public static void exit(int status) {
-//    throw new SystemExitCalledError(status);
-//  }
-  
+  /**
+   * Default mock for {@code System.exit(status)}. Throws an exception to allow Randoop to generate
+   * tests that acknowledge that exit occurs.
+   *
+   * @param status the exit status
+   * @throws SystemExitCalledError with the status
+   */
+   // @SuppressWarnings("DoNotCallSuggester")
+   // public static void exit(int status) {
+   //  throw new SystemExitCalledError(status);
+   // }
 }
