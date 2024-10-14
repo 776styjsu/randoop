@@ -1939,7 +1939,7 @@ public class RandoopSystemTest {
         systemTestEnvironmentManager.createTestEnvironment("anonymous-enum");
     RandoopOptions options = createRandoopOptions(testEnvironment);
     options.addTestClass("enums.BoundType");
-    options.setOption("output_limit", "5");
+    options.setOption("output_limit", "3");
 
     CoverageChecker coverageChecker =
         new CoverageChecker(
@@ -1947,7 +1947,8 @@ public class RandoopSystemTest {
             "enums.BoundType.flip() ignore",
             "enums.BoundType.forBoolean(boolean) ignore",
             "enums.BoundType.valueOf(java.lang.String) ignore",
-            "enums.BoundType.values() ignore");
+            "enums.BoundType.values() ignore",
+            "enums.BoundType.$values() ignore");
 
     generateAndTest(
         testEnvironment, options, ExpectedTests.SOME, ExpectedTests.NONE, coverageChecker);
