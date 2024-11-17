@@ -27,6 +27,7 @@ import randoop.operation.TypedOperation;
 import randoop.sequence.ExecutableSequence;
 import randoop.sequence.Sequence;
 import randoop.sequence.SequenceCollection;
+import randoop.sequence.Variable;
 import randoop.test.DummyCheckGenerator;
 import randoop.types.ArrayType;
 import randoop.types.NonParameterizedType;
@@ -83,6 +84,10 @@ public class DemandDrivenInputCreator {
     this.onlyReceivers = onlyReceivers;
   }
 
+  public SimpleList<Sequence> createInputForType(Type targetType) {
+    return createInputForType(targetType, new HashSet<>());
+  }
+
   /**
    * Performs a demand-driven approach for constructing input objects of a target type, when the
    * sequence collection contains no objects of that type.
@@ -130,41 +135,45 @@ public class DemandDrivenInputCreator {
    * @return method sequences that produce objects of the target type if any are found, or an empty
    *     list otherwise
    */
-  public SimpleList<Sequence> createInputForType(Type targetType) {
-    // Constructors/methods that return the demanded type.
+  private SimpleList<Sequence> createInputForType(Type targetType, Set<Type> processed) {
+    // Avoid infinite recursion
+    if (processed.contains(targetType)) {
+      return new SimpleArrayList<>();
+    }
+    processed.add(targetType);
+
+    // Try to get sequences of the target type from sequenceCollection
+    SimpleList<Sequence> result =
+            sequenceCollection.getSequencesForType(targetType, exactTypeMatch, onlyReceivers, false);
+    if (!result.isEmpty()) {
+      return result;
+    }
+
+    // Identify producer methods for the target type
     Set<TypedOperation> producerMethods = getProducers(targetType);
 
     // Check if there are no producer methods
     if (producerMethods.isEmpty()) {
       // Warn the user
       Log.logPrintf(
-          "Warning: No producer methods found for type %s. Cannot generate inputs for this type.%n",
-          targetType);
+              "Warning: No producer methods found for type %s. Cannot generate inputs for this type.%n",
+              targetType);
       // Track the type with no producers
       UninstantiableTypeTracker.addType(targetType);
       return new SimpleArrayList<>();
     }
 
-    // For each producer method, create a sequence if possible.
-    // Note: The order of methods in `producerMethods` does not guarantee that all necessary
-    // methods will be called in the correct order to fully construct the specified type in one call
-    // to demand-driven `createInputForType`.
-    // Intermediate objects are added to the sequence collection and may be used in future tests.
+    // For each producer method, try to generate sequences
     for (TypedOperation producerMethod : producerMethods) {
-      Sequence newSequence = getInputAndGenSeq(producerMethod);
+      Sequence newSequence = getInputAndGenSeq(producerMethod, processed);
       if (newSequence != null) {
         // If the sequence is successfully executed, add it to the sequenceCollection.
         executeAndAddToPool(Collections.singleton(newSequence));
       }
     }
 
-    // Note: At the beginning of the `createInputForType` call, getSequencesForType here would
-    // return an empty list. However, it is not guaranteed that the method will return a non-empty
-    // list at this point.
-    // It may take multiple calls to `createInputForType` during the forward generation process
-    // to fully construct the specified target type to be used.
-    SimpleList<Sequence> result =
-        sequenceCollection.getSequencesForType(targetType, exactTypeMatch, onlyReceivers, false);
+    // Try again to get sequences of the target type
+    result = sequenceCollection.getSequencesForType(targetType, exactTypeMatch, onlyReceivers, false);
 
     return result;
   }
@@ -315,71 +324,60 @@ public class DemandDrivenInputCreator {
    * @return a sequence for the given {@code TypedOperation}, or {@code null} if the inputs are not
    *     found
    */
-  private @Nullable Sequence getInputAndGenSeq(TypedOperation typedOperation) {
+  private @Nullable Sequence getInputAndGenSeq(TypedOperation typedOperation, Set<Type> processed) {
     TypeTuple inputTypes = typedOperation.getInputTypes();
     List<Sequence> inputSequences = new ArrayList<>();
+    List<Variable> inputVariables = new ArrayList<>();
 
-    // Represents the position of a statement within a sequence.
-    // Used to keep track of the index of the statement that generates an object of the required
-    // type.
-    int index = 0;
-
-    // Create an input type to index mapping.
-    // This allows us to find the exact statements in a sequence that generate objects
-    // of the type required by the typedOperation.
-    Map<Type, List<Integer>> typeToIndex = new HashMap<>();
-
-    for (int i = 0; i < inputTypes.size(); i++) {
-      // Get a set of sequences, each of which generates an object of the input type of the
-      // typedOperation.
-      Type inputType = inputTypes.get(i);
-      // Return exact type match if the input type is a primitive type, same as how it is done in
-      // `ComponentManager.getSequencesForType`. However, allow non-receiver types to be considered
-      // at all times.
+    // For each input type, try to get or generate sequences
+    for (Type inputType : inputTypes) {
+      // Get sequences for input type
       SimpleList<Sequence> sequencesOfType =
-          sequenceCollection.getSequencesForType(
-              inputTypes.get(i), inputType.isPrimitive(), false, false);
-
+              sequenceCollection.getSequencesForType(
+                      inputType, inputType.isPrimitive(), false, false);
       if (sequencesOfType.isEmpty()) {
-        return null;
+        // Try to generate sequences for input type recursively
+        createInputForType(inputType, processed);
+        // Try again to get sequences
+        sequencesOfType =
+                sequenceCollection.getSequencesForType(
+                        inputType, inputType.isPrimitive(), false, false);
+        if (sequencesOfType.isEmpty()) {
+          return null;
+        }
       }
-
-      // Randomly select a sequence from the sequencesOfType.
+      // Randomly select a sequence
       Sequence seq = Randomness.randomMember(sequencesOfType);
-
       inputSequences.add(seq);
 
-      // For each statement in the sequence, add the index of the statement to the typeToIndex map.
-      for (int j = 0; j < seq.size(); j++) {
-        Type type = seq.getVariable(j).getType();
-        typeToIndex.computeIfAbsent(type, k -> new ArrayList<>()).add(index++);
-      }
+      // Get the variable of the desired type from the sequence
+      Variable inputVar = seq.getLastVariable();
+      inputVariables.add(inputVar);
     }
 
-    // The indices of the statements in the sequence that will be used as inputs to the
-    // typedOperation.
-    List<Integer> inputIndices = new ArrayList<>();
+    // Concatenate the input sequences into one sequence
+    Sequence concatenatedSequence = Sequence.concatenate(inputSequences);
 
-    // For each input type of the operation, find the indices of the statements in the sequence
-    // that generates an object of the required type.
-    Map<Type, Integer> typeIndexCount = new HashMap<>();
-    for (Type inputType : inputTypes) {
-      List<Integer> indices = findCompatibleIndices(typeToIndex, inputType);
-      if (indices.isEmpty()) {
-        return null; // No compatible type found, cannot proceed
-      }
+    // Adjust the variables to point to the correct indices in the concatenated sequence
+    List<Variable> adjustedVariables = new ArrayList<>();
+    int offset = 0;
+    for (int i = 0; i < inputSequences.size(); i++) {
+      Sequence seq = inputSequences.get(i);
+      Variable var = inputVariables.get(i);
 
-      int count = typeIndexCount.getOrDefault(inputType, 0);
-      if (count < indices.size()) {
-        inputIndices.add(indices.get(count));
-        typeIndexCount.put(inputType, count + 1);
-      } else {
-        return null; // Not enough sequences to satisfy the input needs
-      }
+      // Adjust the variable index to the concatenated sequence
+      int adjustedIndex = var.index + offset;
+      adjustedVariables.add(concatenatedSequence.getVariable(adjustedIndex));
+
+      offset += seq.size();
     }
 
-    return Sequence.createSequence(typedOperation, inputSequences, inputIndices);
+    // Extend the concatenated sequence with the typedOperation using the adjusted variables
+    Sequence finalSequence = concatenatedSequence.extend(typedOperation, adjustedVariables);
+
+    return finalSequence;
   }
+
 
   /**
    * Given a map of types to indices and a target type, this method returns a list of indices that
