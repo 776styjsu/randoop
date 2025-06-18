@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import randoop.main.GenInputsAbstract;
 import randoop.main.RandoopBug;
+import randoop.util.list.SimpleList;
 
 /**
  * A simple-to-use wrapper around {@link java.util.Random}.
@@ -73,6 +74,20 @@ public final class Randomness {
   }
 
   /**
+   * Returns a gaussianly-distributed random number.
+   *
+   * @param mean the mean of the distribution
+   * @param stdDev the standard deviation of the distribution
+   * @return a value selected from the distribution
+   */
+  public static double nextRandomGaussian(double mean, double stdDev) {
+    incrementCallsToRandom("nextRandomGaussian");
+    double value = stdDev * Randomness.random.nextGaussian() + mean;
+    logSelection(value, "nextRandomGaussian", "mean=" + mean + ", stdDev=" + stdDev);
+    return value;
+  }
+
+  /**
    * Returns a randomly-chosen member of the list.
    *
    * @param <T> the type of list elements
@@ -111,8 +126,10 @@ public final class Randomness {
   /**
    * Returns the nth element (0-indexed) from the iterable.
    *
+   * @param <T> the type of elements in the iterable
    * @param ible an iterable that has at least {@code n}+1 elements
    * @param n the 0-based index of the member to return
+   * @return the the nth element (0-indexed) from the iterable
    */
   public static <T> T nthMember(Iterable<T> ible, int n) {
     Iterator<T> itor = ible.iterator();

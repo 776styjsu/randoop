@@ -16,6 +16,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.mustcall.qual.Owning;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.regex.qual.Regex;
 import org.checkerframework.checker.signature.qual.BinaryName;
 import org.checkerframework.checker.signature.qual.ClassGetName;
 import org.checkerframework.checker.signature.qual.InternalForm;
@@ -709,6 +710,33 @@ public abstract class GenInputsAbstract extends CommandHandler {
   public static int string_maxlen = 1000;
 
   /**
+   * The "GRT Impurity" technique from the GRT paper modifies the inputs of methods used in tests.
+   * When GRT Fuzzing is enabled, Randoop will fuzz primitive/String values. (Randoop by default
+   * starts with a small fixed set of primitive/String inputs to use as arguments to methods.)
+   *
+   * <p>Non-primitive input fuzzing will be added in the future.
+   */
+  @Unpublicized
+  @Option("Fuzz the inputs of methods used in tests")
+  public static boolean grt_fuzzing = false;
+
+  /**
+   * The standard deviation parameter for the Gaussian distribution used to fuzz the primitive
+   * number inputs used in tests. Only used when {@code --grt-fuzzing} is set to true.
+   */
+  @Unpublicized
+  @Option("Standard deviation for the Gaussian distribution used by GRT Impurity to fuzz numbers")
+  public static double grt_fuzzing_stddev = 30.0;
+
+  /**
+   * If this is false, then each variable in a test is declared according to the compile-time type
+   * of the expression being assigned to it. If this is true, then the variable is declared
+   * according to the run-time type of the expression's value.
+   */
+  @Option("Declare variables with the exact types obtained at run time")
+  public static boolean cast_to_run_time_type = false;
+
+  /**
    * Try to reuse values from a sequence with the given frequency. If an alias ratio is given, it
    * should be between 0 and 1.
    *
@@ -1385,7 +1413,10 @@ public abstract class GenInputsAbstract extends CommandHandler {
    */
   @SuppressWarnings("SameParameterValue")
   public static Set<String> getStringSetFromFile(
-      @Nullable Path listFile, String fileDescription, String commentRegex, String includeRegex) {
+      @Nullable Path listFile,
+      String fileDescription,
+      @Regex String commentRegex,
+      @Regex(1) String includeRegex) {
     Set<String> elementSet = new LinkedHashSet<>();
     if (listFile != null) {
       try (EntryReader er = new EntryReader(listFile.toFile(), commentRegex, includeRegex)) {

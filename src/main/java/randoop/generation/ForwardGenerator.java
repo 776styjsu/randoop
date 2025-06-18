@@ -35,12 +35,11 @@ import randoop.types.JDKTypes;
 import randoop.types.JavaTypes;
 import randoop.types.Type;
 import randoop.types.TypeTuple;
-import randoop.util.ListOfLists;
 import randoop.util.Log;
 import randoop.util.MultiMap;
 import randoop.util.Randomness;
-import randoop.util.SimpleArrayList;
-import randoop.util.SimpleList;
+import randoop.util.list.SimpleArrayList;
+import randoop.util.list.SimpleList;
 
 /** Randoop's forward, component-based generator. */
 public class ForwardGenerator extends AbstractGenerator {
@@ -125,7 +124,7 @@ public class ForwardGenerator extends AbstractGenerator {
       Set<TypedOperation> sideEffectFreeMethods,
       GenInputsAbstract.Limits limits,
       ComponentManager componentManager,
-      IStopper stopper,
+      @Nullable IStopper stopper,
       Set<ClassOrInterfaceType> classesUnderTest) {
     super(operations, limits, componentManager, stopper);
 
@@ -234,6 +233,14 @@ public class ForwardGenerator extends AbstractGenerator {
     // System.out.printf("step() is considering: %n%s%n%n", eSeq.sequence);
 
     eSeq.execute(executionVisitor, checkGenerator);
+
+    // Dynamic type casting permits calling methods that do not exist on the declared type.
+    boolean cast = eSeq.castToRunTimeType();
+    // Re-execute the sequence after applying dynamic type casting.
+    if (cast) {
+      setCurrentSequence(eSeq.sequence);
+      eSeq.execute(executionVisitor, checkGenerator);
+    }
 
     startTimeNanos = System.nanoTime(); // reset start time.
 
@@ -418,7 +425,7 @@ public class ForwardGenerator extends AbstractGenerator {
    *
    * @return a new sequence, or null
    */
-  private ExecutableSequence createNewUniqueSequence() {
+  private @Nullable ExecutableSequence createNewUniqueSequence() {
 
     Log.logPrintf("-------------------------------------------%n");
     if (Log.isLoggingOn()) {
@@ -656,12 +663,11 @@ public class ForwardGenerator extends AbstractGenerator {
     // The total size of S
     int totStatements = 0;
 
-    // Variables to
-    // be used as inputs to the statement, represented as indices into S (ie, a reference to the
-    // statement that declares the variable).  [TODO: Is this an index into S or into `sequences`?].
-    // Upon successful completion
-    // of this method, variables will contain inputTypes.size() variables.
-    // Note additionally that for every i in variables, 0 <= i < |S|.
+    // Variables to be used as inputs to the statement, represented as indices into S (ie, a
+    // reference to the statement that declares the variable).  [TODO: Is this an index into S or
+    // into `sequences`?].
+    // Upon successful completion of this method, variables will contain inputTypes.size()
+    // variables.  Note additionally that for every i in variables, 0 <= i < |S|.
     //
     // For example, given as statement a method M(T1)/T2 that takes as input
     // a value of type T1 and returns a value of type T2, this method might
@@ -670,7 +676,7 @@ public class ForwardGenerator extends AbstractGenerator {
     // T0 var0 = new T0(); T1 var1 = var0.getT1();
     //
     // and the singleton list [0] that represents variable var1.
-    List<Integer> variables = new ArrayList<>();
+    List<Integer> inputVars = new ArrayList<>();
 
     // [Optimization]
     // The following two variables improve efficiency in the loop below when
@@ -681,6 +687,7 @@ public class ForwardGenerator extends AbstractGenerator {
     SubTypeSet types = new SubTypeSet(false);
     MultiMap<Type, Integer> typesToVars = new MultiMap<>(inputTypes.size());
 
+    // This loop populates `inputVars` and `sequences`.
     for (int i = 0; i < inputTypes.size(); i++) {
       Type inputType = inputTypes.get(i);
 
@@ -705,11 +712,11 @@ public class ForwardGenerator extends AbstractGenerator {
 
         // If any type-compatible variables found, pick one at random as the
         // i-th input to st.
-        SimpleList<Integer> candidateVars2 = new ListOfLists<>(candidateVars);
+        SimpleList<Integer> candidateVars2 = SimpleList.concat(candidateVars);
         if (!candidateVars2.isEmpty()) {
           int randVarIdx = Randomness.nextRandomInt(candidateVars2.size());
           Integer randVar = candidateVars2.get(randVarIdx);
-          variables.add(randVar);
+          inputVars.add(randVar);
           continue;
         }
       }
@@ -723,7 +730,7 @@ public class ForwardGenerator extends AbstractGenerator {
         Log.logPrintf("Using null as input.%n");
         TypedOperation st = TypedOperation.createNullOrZeroInitializationForType(inputType);
         Sequence seq = new Sequence().extend(st, Collections.emptyList());
-        variables.add(totStatements);
+        inputVars.add(totStatements);
         sequences.add(seq);
         assert seq.size() == 1;
         totStatements++;
@@ -749,7 +756,7 @@ public class ForwardGenerator extends AbstractGenerator {
         SimpleList<Sequence> l1 = componentManager.getSequencesForType(operation, i, isReceiver);
         SimpleList<Sequence> l2 =
             HelperSequenceCreator.createArraySequence(componentManager, inputType);
-        candidates = new ListOfLists<>(l1, l2);
+        candidates = SimpleList.concat(l1, l2);
         Log.logPrintf("Array creation heuristic: " + candidates.size() + " candidates%n");
 
       } else if (inputType.isParameterized()
@@ -760,13 +767,10 @@ public class ForwardGenerator extends AbstractGenerator {
 
         SimpleList<Sequence> l1 = componentManager.getSequencesForType(operation, i, isReceiver);
         Log.logPrintf("Collection creation heuristic: will create helper of type %s%n", classType);
-        SimpleArrayList<Sequence> l2 = new SimpleArrayList<>(1);
         Sequence creationSequence =
             HelperSequenceCreator.createCollection(componentManager, classType);
-        if (creationSequence != null) {
-          l2.add(creationSequence);
-        }
-        candidates = new ListOfLists<>(l1, l2);
+        SimpleArrayList<Sequence> l2 = SimpleArrayList.singletonOrEmpty(creationSequence);
+        candidates = SimpleList.concat(l1, l2);
 
       } else {
 
@@ -794,7 +798,7 @@ public class ForwardGenerator extends AbstractGenerator {
               "Found no sequences of required type; will use null as " + i + "-th input%n");
           TypedOperation st = TypedOperation.createNullOrZeroInitializationForType(inputType);
           Sequence seq = new Sequence().extend(st, Collections.emptyList());
-          variables.add(totStatements);
+          inputVars.add(totStatements);
           sequences.add(seq);
           assert seq.size() == 1;
           totStatements++;
@@ -809,6 +813,19 @@ public class ForwardGenerator extends AbstractGenerator {
       VarAndSeq varAndSeq = randomVariable(candidates, inputType, isReceiver);
       Variable randomVariable = varAndSeq.var;
       Sequence chosenSeq = varAndSeq.seq;
+
+      // Fuzz the inputs for method calls and constructors.
+      // See randoop.generation.GrtFuzzing for details.
+      int fuzzingSizeChange = 0;
+      boolean grtFuzz = GenInputsAbstract.grt_fuzzing;
+      if (grtFuzz) {
+        GrtFuzzer fuzzer = GrtFuzzer.getFuzzer(inputType);
+        if (fuzzer != null) {
+          int prevSize = chosenSeq.size();
+          chosenSeq = fuzzer.fuzz(chosenSeq);
+          fuzzingSizeChange = chosenSeq.size() - prevSize;
+        }
+      }
 
       // [Optimization.] Update optimization-related variables "types" and "typesToVars".
       if (GenInputsAbstract.alias_ratio != 0) {
@@ -825,12 +842,12 @@ public class ForwardGenerator extends AbstractGenerator {
         }
       }
 
-      variables.add(totStatements + randomVariable.index);
+      inputVars.add(totStatements + randomVariable.index + fuzzingSizeChange);
       sequences.add(chosenSeq);
       totStatements += chosenSeq.size();
     }
 
-    return new InputsAndSuccessFlag(true, sequences, variables);
+    return new InputsAndSuccessFlag(true, sequences, inputVars);
   }
 
   // A pair of a variable and a sequence

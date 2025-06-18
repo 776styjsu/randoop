@@ -3,6 +3,8 @@ package randoop;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Class used to communicate values from the replacecall agent to Randoop.
@@ -27,14 +29,20 @@ import java.util.List;
  * patterns before starting generation.
  */
 public class MethodReplacements {
+
+  /** Do not Create a MethodReplacements. */
+  public MethodReplacements() {
+    throw new Error("do not instantiate");
+  }
+
   /** The list of signature strings. */
   private static List<String> signatureList = new ArrayList<>();
 
   /** The string with the path to the replacecall agent. */
-  private static String agentPath;
+  private static @MonotonicNonNull String agentPath;
 
   /** The argument string for the call to the agent that set this variable. */
-  private static String agentArgs;
+  private static @MonotonicNonNull String agentArgs;
 
   /**
    * Copies the given list of method signature strings to the list in this object, overwriting the
@@ -83,7 +91,7 @@ public class MethodReplacements {
    *
    * @return the path to the agent jar file
    */
-  public static synchronized String getAgentPath() {
+  public static synchronized @Nullable String getAgentPath() {
     return agentPath;
   }
 
@@ -92,7 +100,7 @@ public class MethodReplacements {
    *
    * @return the argument string
    */
-  public static synchronized String getAgentArgs() {
+  public static synchronized @Nullable String getAgentArgs() {
     return agentArgs;
   }
 }

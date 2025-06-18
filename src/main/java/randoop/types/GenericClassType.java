@@ -3,11 +3,12 @@ package randoop.types;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.plumelib.util.CollectionsPlume;
 
 /**
- * Represents the type of a generic class. Related to concrete {@link InstantiatedType} by
- * instantiating with a {@link Substitution}.
+ * Represents the type of a generic class. The type parameters are all type variables. Related to
+ * concrete {@link InstantiatedType} by instantiating with a {@link Substitution}.
  */
 public class GenericClassType extends ParameterizedType {
 
@@ -37,7 +38,7 @@ public class GenericClassType extends ParameterizedType {
    * @return true if two generic classes have the same rawtype, false otherwise
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -266,7 +267,24 @@ public class GenericClassType extends ParameterizedType {
     if (super.isSubtypeOf(otherType)) {
       return true;
     }
-    return otherType.isRawtype() && otherType.runtimeClassIs(this.getRuntimeClass());
+    if (otherType.runtimeClassIs(this.getRuntimeClass())) {
+      if (otherType.isRawtype()) {
+        return true;
+      }
+      if (otherType instanceof InstantiatedType) {
+        boolean allWildcards = true;
+        for (TypeArgument argument : ((InstantiatedType) otherType).getTypeArguments()) {
+          if (!(argument instanceof WildcardArgument)) {
+            allWildcards = false;
+            break;
+          }
+        }
+        if (allWildcards) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**

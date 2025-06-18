@@ -3,7 +3,9 @@ package randoop.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TreeSet;
@@ -32,9 +34,13 @@ import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.ConstantPushInstruction;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionList;
+import org.apache.bcel.generic.LDC;
+import org.apache.bcel.generic.LDC2_W;
+import org.apache.bcel.generic.LDC_W;
 import org.apache.bcel.generic.MethodGen;
 import org.apache.bcel.util.ClassPath;
 import org.checkerframework.checker.signature.qual.ClassGetName;
+import org.plumelib.util.CollectionsPlume;
 import randoop.main.RandoopBug;
 import randoop.operation.NonreceiverTerm;
 import randoop.reflection.TypeNames;
@@ -100,6 +106,19 @@ public class ClassFileConstants {
     /** Values that are non-receiver terms. */
     public Set<Class<?>> classes = new HashSet<>();
 
+    /** Map that stores the number of uses of each constant in the current class. */
+    public Map<Object, Integer> constantFrequency = new HashMap<>();
+
+    /**
+     * Returns the number of uses of the given constant in the current class.
+     *
+     * @param value the constant value
+     * @return the number of uses of the constant in the current class
+     */
+    public int getConstantFrequency(Object value) {
+      return constantFrequency.getOrDefault(value, 0);
+    }
+
     @Override
     public String toString() {
       StringJoiner sb = new StringJoiner(randoop.Globals.lineSep);
@@ -123,7 +142,7 @@ public class ClassFileConstants {
       for (Class<?> x : classes) {
         sb.add("Class:" + x);
       }
-      sb.add("%nEND CLASSLITERALS for " + classname);
+      sb.add("END CLASSLITERALS for " + classname);
 
       return sb.toString();
     }
@@ -150,6 +169,8 @@ public class ClassFileConstants {
    * @see #getConstants(String,ConstantSet)
    */
   public static ConstantSet getConstants(String classname) {
+    // TODO: What is the relationship between the parameter `classname` and the value that
+    // `getConstants()` writes into the `classname` field of `result`?
     ConstantSet result = new ConstantSet();
     getConstants(classname, result);
     return result;
@@ -181,7 +202,7 @@ public class ClassFileConstants {
     // Get all of the constants from the classfile's constant pool.
     ConstantPool constant_pool = jc.getConstantPool();
     for (Constant c : constant_pool.getConstantPool()) {
-      // System.out.printf ("*Constant = %s%n", c);
+      // System.out.printf ("*Constant = %s [%s]%n", c, c.getClass());
       if (c == null
           || c instanceof ConstantClass
           || c instanceof ConstantFieldref
@@ -221,13 +242,13 @@ public class ClassFileConstants {
         for (Instruction inst : il.getInstructions()) {
           switch (inst.getOpcode()) {
 
-            // Compare two objects, no literals
+              // Compare two objects, no literals
             case Const.IF_ACMPEQ:
             case Const.IF_ACMPNE:
               break;
 
-            // These instructions compare the integer on the top of the stack
-            // to zero. There are no literals here (except 0).
+              // These instructions compare the integer on the top of the stack
+              // to zero. There are no literals here (except 0).
             case Const.IFEQ:
             case Const.IFNE:
             case Const.IFLT:
@@ -235,46 +256,48 @@ public class ClassFileConstants {
             case Const.IFGT:
             case Const.IFLE:
               {
+                // If no instruction is followed by those instructions, then it is comparing to 0.
+                registerIntegerConstant(Integer.valueOf(0), result);
                 break;
               }
 
-            // InstanceOf pushes either 0 or 1 on the stack depending on
-            // whether
-            // the object on top of stack is of the specified type.
-            // If were interested in class literals, this would be interesting
+              // InstanceOf pushes either 0 or 1 on the stack depending on
+              // whether
+              // the object on top of stack is of the specified type.
+              // If were interested in class literals, this would be interesting
             case Const.INSTANCEOF:
               break;
 
-            // Duplicates the item on the top of stack. No literal.
+              // Duplicates the item on the top of stack. No literal.
             case Const.DUP:
               {
                 break;
               }
 
-            // Duplicates the item on the top of the stack and inserts it 2
-            // values down in the stack. No literals
+              // Duplicates the item on the top of the stack and inserts it 2
+              // values down in the stack. No literals
             case Const.DUP_X1:
               {
                 break;
               }
 
-            // Duplicates either the top 2 category 1 values or a single
-            // category 2 value and inserts it 2 or 3 values down on the
-            // stack.
+              // Duplicates either the top 2 category 1 values or a single
+              // category 2 value and inserts it 2 or 3 values down on the
+              // stack.
             case Const.DUP2_X1:
               {
                 break;
               }
 
-            // Duplicate either one category 2 value or two category 1 values.
+              // Duplicate either one category 2 value or two category 1 values.
             case Const.DUP2:
               {
                 break;
               }
 
-            // Dup the category 1 value on the top of the stack and insert it
-            // either
-            // two or three values down on the stack.
+              // Dup the category 1 value on the top of the stack and insert it
+              // either
+              // two or three values down on the stack.
             case Const.DUP_X2:
               {
                 break;
@@ -285,27 +308,27 @@ public class ClassFileConstants {
                 break;
               }
 
-            // Pop instructions discard the top of the stack.
+              // Pop instructions discard the top of the stack.
             case Const.POP:
               {
                 break;
               }
 
-            // Pops either the top 2 category 1 values or a single category 2
-            // value
-            // from the top of the stack.
+              // Pops either the top 2 category 1 values or a single category 2
+              // value
+              // from the top of the stack.
             case Const.POP2:
               {
                 break;
               }
 
-            // Swaps the two category 1 types on the top of the stack.
+              // Swaps the two category 1 types on the top of the stack.
             case Const.SWAP:
               {
                 break;
               }
 
-            // Compares two integers on the stack
+              // Compares two integers on the stack
             case Const.IF_ICMPEQ:
             case Const.IF_ICMPGE:
             case Const.IF_ICMPGT:
@@ -316,31 +339,31 @@ public class ClassFileConstants {
                 break;
               }
 
-            // Get the value of a field
+              // Get the value of a field
             case Const.GETFIELD:
               {
                 break;
               }
 
-            // stores the top of stack into a field
+              // stores the top of stack into a field
             case Const.PUTFIELD:
               {
                 break;
               }
 
-            // Pushes the value of a static field on the stack
+              // Pushes the value of a static field on the stack
             case Const.GETSTATIC:
               {
                 break;
               }
 
-            // Pops a value off of the stack into a static field
+              // Pops a value off of the stack into a static field
             case Const.PUTSTATIC:
               {
                 break;
               }
 
-            // pushes a local onto the stack
+              // pushes a local onto the stack
             case Const.DLOAD:
             case Const.DLOAD_0:
             case Const.DLOAD_1:
@@ -365,7 +388,7 @@ public class ClassFileConstants {
                 break;
               }
 
-            // Pops a value off of the stack into a local
+              // Pops a value off of the stack into a local
             case Const.DSTORE:
             case Const.DSTORE_0:
             case Const.DSTORE_1:
@@ -390,72 +413,92 @@ public class ClassFileConstants {
                 break;
               }
 
-            // Push a value from the constant pool. We'll get these
-            // values when processing the constant pool itself.
+              // Push a value from the constant pool. We'll get these
+              // values when processing the constant pool itself.
             case Const.LDC:
+              {
+                LDC ldcInstruction = (LDC) inst;
+                int index = ldcInstruction.getIndex();
+                Constant constant = constant_pool.getConstant(index);
+                registerConstant(constant, constant_pool, result);
+                break;
+              }
             case Const.LDC_W:
+              // TODO: Could be redundant
+              {
+                LDC_W ldc_w = (LDC_W) inst;
+                int index = ldc_w.getIndex();
+                Constant constant = constant_pool.getConstant(index);
+                registerConstant(constant, constant_pool, result);
+                break;
+              }
             case Const.LDC2_W:
               {
+                // Like the LDC, but for longs and doubles
+                LDC2_W ldc2_w = (LDC2_W) inst;
+                int index = ldc2_w.getIndex();
+                Constant constant = constant_pool.getConstant(index);
+                registerConstant(constant, constant_pool, result);
                 break;
               }
 
-            // Push the length of an array on the stack
+              // Push the length of an array on the stack
             case Const.ARRAYLENGTH:
               {
                 break;
               }
 
-            // Push small constants (-1..5) on the stack.
+              // Push small constants (-1..5) on the stack.
             case Const.DCONST_0:
-              doubleConstant(Double.valueOf(0), result);
+              registerDoubleConstant(Double.valueOf(0), result);
               break;
             case Const.DCONST_1:
-              doubleConstant(Double.valueOf(1), result);
+              registerDoubleConstant(Double.valueOf(1), result);
               break;
             case Const.FCONST_0:
-              floatConstant(Float.valueOf(0), result);
+              registerFloatConstant(Float.valueOf(0), result);
               break;
             case Const.FCONST_1:
-              floatConstant(Float.valueOf(1), result);
+              registerFloatConstant(Float.valueOf(1), result);
               break;
             case Const.FCONST_2:
-              floatConstant(Float.valueOf(2), result);
+              registerFloatConstant(Float.valueOf(2), result);
               break;
             case Const.ICONST_0:
-              integerConstant(Integer.valueOf(0), result);
+              registerIntegerConstant(Integer.valueOf(0), result);
               break;
             case Const.ICONST_1:
-              integerConstant(Integer.valueOf(1), result);
+              registerIntegerConstant(Integer.valueOf(1), result);
               break;
             case Const.ICONST_2:
-              integerConstant(Integer.valueOf(2), result);
+              registerIntegerConstant(Integer.valueOf(2), result);
               break;
             case Const.ICONST_3:
-              integerConstant(Integer.valueOf(3), result);
+              registerIntegerConstant(Integer.valueOf(3), result);
               break;
             case Const.ICONST_4:
-              integerConstant(Integer.valueOf(4), result);
+              registerIntegerConstant(Integer.valueOf(4), result);
               break;
             case Const.ICONST_5:
-              integerConstant(Integer.valueOf(5), result);
+              registerIntegerConstant(Integer.valueOf(5), result);
               break;
             case Const.ICONST_M1:
-              integerConstant(Integer.valueOf(-1), result);
+              registerIntegerConstant(Integer.valueOf(-1), result);
               break;
             case Const.LCONST_0:
-              longConstant(Long.valueOf(0), result);
+              registerLongConstant(Long.valueOf(0), result);
               break;
             case Const.LCONST_1:
-              longConstant(Long.valueOf(1), result);
+              registerLongConstant(Long.valueOf(1), result);
               break;
 
             case Const.BIPUSH:
             case Const.SIPUSH:
               ConstantPushInstruction cpi = (ConstantPushInstruction) inst;
-              integerConstant((Integer) cpi.getValue(), result);
+              registerIntegerConstant((Integer) cpi.getValue(), result);
               break;
 
-            // Primitive Binary operators.
+              // Primitive Binary operators.
             case Const.DADD:
             case Const.DCMPG:
             case Const.DCMPL:
@@ -510,7 +553,7 @@ public class ClassFileConstants {
                 break;
               }
 
-            // push the value at an index in an array
+              // push the value at an index in an array
             case Const.AALOAD:
             case Const.BALOAD:
             case Const.CALOAD:
@@ -523,7 +566,7 @@ public class ClassFileConstants {
                 break;
               }
 
-            // Pop the top of stack into an array location
+              // Pop the top of stack into an array location
             case Const.AASTORE:
             case Const.BASTORE:
             case Const.CASTORE:
@@ -544,7 +587,7 @@ public class ClassFileConstants {
                 break;
               }
 
-            // subroutine calls.
+              // subroutine calls.
             case Const.INVOKESTATIC:
             case Const.INVOKEVIRTUAL:
             case Const.INVOKESPECIAL:
@@ -552,11 +595,11 @@ public class ClassFileConstants {
             case Const.INVOKEDYNAMIC:
               break;
 
-            // Throws an exception.
+              // Throws an exception.
             case Const.ATHROW:
               break;
 
-            // Opcodes that don't need any modifications. Here for reference.
+              // Opcodes that don't need any modifications. Here for reference.
             case Const.ACONST_NULL:
             case Const.ALOAD:
             case Const.ALOAD_0:
@@ -603,7 +646,7 @@ public class ClassFileConstants {
             case Const.WIDE:
               break;
 
-            // Make sure we didn't miss anything
+              // Make sure we didn't miss anything
             default:
               throw new RandoopBug("instruction " + inst + " unsupported");
           }
@@ -614,13 +657,56 @@ public class ClassFileConstants {
   }
 
   /**
+   * Register a constant in the given ConstantSet.
+   *
+   * @param constant the constant
+   * @param constant_pool a constant pool that is used if the constant is a String, Class, or Enum
+   * @param cs the ConstantSet
+   */
+  static void registerConstant(Constant constant, ConstantPool constant_pool, ConstantSet cs) {
+    if (constant instanceof ConstantInteger) {
+      int intValue = ((ConstantInteger) constant).getBytes();
+      registerIntegerConstant(intValue, cs);
+    } else if (constant instanceof ConstantFloat) {
+      float floatValue = ((ConstantFloat) constant).getBytes();
+      registerFloatConstant(floatValue, cs);
+      // TODO: Long and Doubles could be redundant
+    } else if (constant instanceof ConstantLong) {
+      long longValue = ((ConstantLong) constant).getBytes();
+      registerLongConstant(longValue, cs);
+    } else if (constant instanceof ConstantDouble) {
+      double doubleValue = ((ConstantDouble) constant).getBytes();
+      registerDoubleConstant(doubleValue, cs);
+    } else if (constant instanceof ConstantString) {
+      String s = ((ConstantString) constant).getBytes(constant_pool);
+      registerStringConstant(s, cs);
+    } else if (constant instanceof ConstantClass) {
+      String className = ((ConstantClass) constant).getBytes(constant_pool);
+      className = className.replace('/', '.');
+      try {
+        @SuppressWarnings("signature:cast.unsafe") // TODO: How you know about this
+        Class<?> c = Class.forName((@ClassGetName String) className);
+        // Add to the classes only if it is used by LDC instruction in order to avoid
+        // self classes and classes like Java.lang.Object.class and
+        // Java.lang.System.class.
+        registerClassConstant(c, cs);
+      } catch (ClassNotFoundException e) {
+        throw new RandoopBug(e);
+      }
+    } else {
+      throw new RuntimeException("Unrecognized constant of type " + constant.getClass());
+    }
+  }
+
+  /**
    * Register a double constant in the given ConstantSet.
    *
    * @param value the double constant
    * @param cs the ConstantSet
    */
-  static void doubleConstant(Double value, ConstantSet cs) {
+  static void registerDoubleConstant(Double value, ConstantSet cs) {
     cs.doubles.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
   }
 
   /**
@@ -629,8 +715,9 @@ public class ClassFileConstants {
    * @param value the float constant
    * @param cs the ConstantSet
    */
-  static void floatConstant(Float value, ConstantSet cs) {
+  static void registerFloatConstant(Float value, ConstantSet cs) {
     cs.floats.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
   }
 
   /**
@@ -639,8 +726,9 @@ public class ClassFileConstants {
    * @param value the integer constant
    * @param cs the ConstantSet
    */
-  static void integerConstant(Integer value, ConstantSet cs) {
+  static void registerIntegerConstant(Integer value, ConstantSet cs) {
     cs.ints.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
   }
 
   /**
@@ -649,8 +737,31 @@ public class ClassFileConstants {
    * @param value the long constant
    * @param cs the ConstantSet
    */
-  static void longConstant(Long value, ConstantSet cs) {
+  static void registerLongConstant(Long value, ConstantSet cs) {
     cs.longs.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
+  }
+
+  /**
+   * Register a String constant in the given ConstantSet.
+   *
+   * @param value the String constant
+   * @param cs the ConstantSet
+   */
+  static void registerStringConstant(String value, ConstantSet cs) {
+    cs.strings.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
+  }
+
+  /**
+   * Register a Class constant in the given ConstantSet.
+   *
+   * @param value the Class constant
+   * @param cs the ConstantSet
+   */
+  static void registerClassConstant(Class<?> value, ConstantSet cs) {
+    cs.classes.add(value);
+    CollectionsPlume.incrementMap(cs.constantFrequency, value);
   }
 
   /**
@@ -701,7 +812,7 @@ public class ClassFileConstants {
    * @param cs the ConstantSet
    * @return a set of NonreceiverTerms
    */
-  private static Set<NonreceiverTerm> constantSetToNonreceiverTerms(ConstantSet cs) {
+  public static Set<NonreceiverTerm> constantSetToNonreceiverTerms(ConstantSet cs) {
     Set<NonreceiverTerm> result = new HashSet<>();
     for (Integer x : cs.ints) {
       result.add(new NonreceiverTerm(JavaTypes.INT_TYPE, x));
