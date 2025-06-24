@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import junit.framework.TestCase;
 import randoop.util.Randomness;
-import randoop.util.list.OneMoreElementList;
 import randoop.util.list.SimpleList;
 
 public class ListOfListsIteratorTests extends TestCase {
@@ -39,10 +38,9 @@ public class ListOfListsIteratorTests extends TestCase {
           SimpleList<Integer> theList = SimpleList.concat(members);
           lists.add(theList);
         } else {
-          // OneMoreElementList
           int theElement = Randomness.nextRandomInt(10);
           SimpleList<Integer> prefixList = Randomness.randomMember(lists);
-          SimpleList<Integer> theList = new OneMoreElementList<>(prefixList, theElement);
+          SimpleList<Integer> theList = prefixList.add(theElement);
           lists.add(theList);
         }
       }
@@ -54,7 +52,7 @@ public class ListOfListsIteratorTests extends TestCase {
         // System.out.print(l.get(j) + " ");
         // System.out.println("]");
         // System.out.print("[ ");
-        Iterator<Integer> it = l.toJDKList().iterator();
+        Iterator<Integer> it = l.iterator();
         for (int j = 0; j < l.size(); j++) {
           // System.out.print(l.get(j) + " ");
           assertTrue(it.hasNext());
