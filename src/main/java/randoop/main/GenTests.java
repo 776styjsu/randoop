@@ -117,6 +117,7 @@ import randoop.util.predicate.AlwaysFalse;
 /** Test generation. */
 public class GenTests extends GenInputsAbstract {
 
+  /** The message printed when there are no operations to test. */
   // If this is changed, also change RandoopSystemTest.NO_OPERATIONS_TO_TEST
   private static final String NO_OPERATIONS_TO_TEST =
       "There are no methods for Randoop to test.  See diagnostics above.  Exiting.";
