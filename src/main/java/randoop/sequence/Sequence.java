@@ -261,6 +261,16 @@ public final class Sequence {
   }
 
   /**
+   * Returns true if this is empty.
+   *
+   * @return true if this is empty
+   */
+  @Pure
+  public final boolean isEmpty() {
+    return statements.isEmpty();
+  }
+
+  /**
    * The number of method calls in this sequence.
    *
    * @return the number of method calls in this sequence
@@ -461,8 +471,8 @@ public final class Sequence {
    */
   private static int computeNetSize(SIList<Statement> statements) {
     int result = 0;
-    for (int i = 0; i < statements.size(); i++) { // SIList has no iterator
-      if (!statements.get(i).isNonreceivingInitialization()) {
+    for (Statement s : statements) {
+      if (!s.isNonreceivingInitialization()) {
         result++;
       }
     }
@@ -520,7 +530,7 @@ public final class Sequence {
       throw new RuntimeException("statements == null");
     }
 
-    for (int si = 0; si < this.statements.size(); si++) { // SIList has no iterator
+    for (int si = 0; si < this.statements.size(); si++) { // `si` is used later
 
       Statement statementWithInputs = this.statements.get(si);
 
@@ -662,8 +672,7 @@ public final class Sequence {
    */
   private static int computeHashcode(SIList<Statement> statements) {
     int hashCode = 0;
-    for (int i = 0; i < statements.size(); i++) { // SIList has no iterator
-      Statement s = statements.get(i);
+    for (Statement s : statements) {
       hashCode += s.hashCode();
     }
     return hashCode;
@@ -792,11 +801,7 @@ public final class Sequence {
               "In rVFTLS, no candidates for %svariable with input type %s from statement %s",
               (onlyReceivers ? "receiver " : ""), type, lastStatement));
     }
-    if (possibleVars.size() == 1) {
-      return possibleVars.get(0);
-    } else {
-      return Randomness.randomMember(possibleVars);
-    }
+    return Randomness.randomMember(possibleVars);
   }
 
   /**
@@ -812,7 +817,7 @@ public final class Sequence {
       throw new IllegalArgumentException("type cannot be null.");
     }
     List<Integer> possibleIndices = new ArrayList<>();
-    for (int i = 0; i < size(); i++) { // SIList has no iterator
+    for (int i = 0; i < size(); i++) { // `i` is used in the loop.
       Statement s = statements.get(i);
       if (isActive(i)) {
         Type outputType = s.getOutputType();
@@ -827,12 +832,7 @@ public final class Sequence {
           "Failed to select variable with input type " + type + " from sequence " + this);
     }
 
-    int index;
-    if (possibleIndices.size() == 1) {
-      index = possibleIndices.get(0);
-    } else {
-      index = Randomness.randomMember(possibleIndices);
-    }
+    int index = Randomness.randomMember(possibleIndices);
     return new Variable(this, index);
   }
 
@@ -1185,8 +1185,8 @@ public final class Sequence {
    * @return true if any statement has operation with matching declaring class, false otherwise
    */
   public boolean hasUseOfMatchingClass(Pattern classNames) {
-    for (int i = 0; i < statements.size(); i++) { // SIList has no iterator
-      Type declaringType = statements.get(i).getDeclaringClass();
+    for (Statement s : statements) {
+      Type declaringType = s.getDeclaringClass();
       if (declaringType != null && classNames.matcher(declaringType.getBinaryName()).matches()) {
         return true;
       }
