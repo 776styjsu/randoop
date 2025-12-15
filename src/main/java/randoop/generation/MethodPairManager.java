@@ -233,7 +233,7 @@ public class MethodPairManager {
     // Check supertypes
     if (type instanceof ClassOrInterfaceType) {
       ClassOrInterfaceType classType = (ClassOrInterfaceType) type;
-      for (ClassOrInterfaceType superType : classType.getSuperTypes()) {
+      for (ClassOrInterfaceType superType : classType.getSupertypesStrict()) {
         stopOp = getStopOperationForTypeRecursive(superType, visitedTypes);
         if (stopOp != null) {
           return stopOp;
